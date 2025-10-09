@@ -1,0 +1,326 @@
+schema: '2.0'
+stages:
+  data_preprocessing:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/data/preprocess.py
+    deps:
+    - path: data/raw/osdg-community-data-v2024-04-01.csv
+      hash: md5
+      md5: 26627ce342bc1de474be21d9a9b80536
+      size: 30208569
+      isexec: true
+    - path: params.yaml
+      hash: md5
+      md5: 3001485891e7e822dff4f5872d88f04c
+      size: 1281
+      isexec: true
+    - path: src/data/preprocess.py
+      hash: md5
+      md5: 66e76bff26cd1bb6785de78ef152cd2f
+      size: 10269
+      isexec: true
+    params:
+      params.yaml:
+        data.random_state: 42
+        data.test_size: 0.2
+        data.val_size: 0.1
+        preprocessing.lowercase: true
+        preprocessing.max_df: 0.95
+        preprocessing.max_features: 10000
+        preprocessing.min_df: 5
+        preprocessing.ngram_range:
+        - 1
+        - 2
+        preprocessing.remove_stopwords: true
+    outs:
+    - path: data/processed/X_test.pkl
+      hash: md5
+      md5: b50085492913a5e32ee3811f15539b24
+      size: 4872358
+      isexec: true
+    - path: data/processed/X_train.pkl
+      hash: md5
+      md5: ebbcf0a9d552bb199f2245b07280ceda
+      size: 17177428
+      isexec: true
+    - path: data/processed/X_val.pkl
+      hash: md5
+      md5: 045d23a7a044fa7149b24a29e972d91a
+      size: 2442754
+      isexec: true
+    - path: data/processed/data_stats.json
+      hash: md5
+      md5: efe2f9340d7ad4a886eb29879852382f
+      size: 1910
+      isexec: true
+    - path: data/processed/label_encoder.pkl
+      hash: md5
+      md5: 62965910f78c787e472fa24ead2ceea7
+      size: 370
+      isexec: true
+    - path: data/processed/vectorizer.pkl
+      hash: md5
+      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      size: 396299
+      isexec: true
+    - path: data/processed/y_test.pkl
+      hash: md5
+      md5: 9ce73a144d415e28b11383286ecae073
+      size: 69001
+      isexec: true
+    - path: data/processed/y_train.pkl
+      hash: md5
+      md5: 07922ecfa7c668d66fef11c77ce7c44b
+      size: 241097
+      isexec: true
+    - path: data/processed/y_val.pkl
+      hash: md5
+      md5: de806dd053ed2029e74e156198b12c12
+      size: 34576
+      isexec: true
+  train_model:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/models/train.py
+    deps:
+    - path: data/processed/X_train.pkl
+      hash: md5
+      md5: ebbcf0a9d552bb199f2245b07280ceda
+      size: 17177428
+      isexec: true
+    - path: data/processed/X_val.pkl
+      hash: md5
+      md5: 045d23a7a044fa7149b24a29e972d91a
+      size: 2442754
+      isexec: true
+    - path: data/processed/label_encoder.pkl
+      hash: md5
+      md5: 62965910f78c787e472fa24ead2ceea7
+      size: 370
+      isexec: true
+    - path: data/processed/vectorizer.pkl
+      hash: md5
+      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      size: 396299
+      isexec: true
+    - path: data/processed/y_train.pkl
+      hash: md5
+      md5: 07922ecfa7c668d66fef11c77ce7c44b
+      size: 241097
+      isexec: true
+    - path: data/processed/y_val.pkl
+      hash: md5
+      md5: de806dd053ed2029e74e156198b12c12
+      size: 34576
+      isexec: true
+    - path: params.yaml
+      hash: md5
+      md5: 3001485891e7e822dff4f5872d88f04c
+      size: 1281
+      isexec: true
+    - path: src/models/train.py
+      hash: md5
+      md5: 71cab3f0e7e70fc88f67901974924459
+      size: 10514
+      isexec: true
+    params:
+      params.yaml:
+        model.algorithm: random_forest
+        model.class_weight: balanced
+        model.max_depth: 10
+        model.min_samples_leaf: 2
+        model.min_samples_split: 5
+        model.n_estimators: 100
+        neural_network.batch_size: 32
+        neural_network.dropout_rate: 0.3
+        neural_network.epochs: 50
+        neural_network.hidden_layers:
+        - 128
+        - 64
+        - 32
+        neural_network.learning_rate: 0.001
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: 6d6f0da1d218120ee82411e17a5b9578
+      size: 3188371
+      isexec: true
+    - path: models/training_metrics.json
+      hash: md5
+      md5: b03818ac59c7c726a45df65c22b76c88
+      size: 138508
+      isexec: true
+  evaluate_model:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/evaluation/evaluate.py
+    deps:
+    - path: data/processed/X_test.pkl
+      hash: md5
+      md5: b50085492913a5e32ee3811f15539b24
+      size: 4872358
+      isexec: true
+    - path: data/processed/label_encoder.pkl
+      hash: md5
+      md5: 62965910f78c787e472fa24ead2ceea7
+      size: 370
+      isexec: true
+    - path: data/processed/vectorizer.pkl
+      hash: md5
+      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      size: 396299
+      isexec: true
+    - path: data/processed/y_test.pkl
+      hash: md5
+      md5: 9ce73a144d415e28b11383286ecae073
+      size: 69001
+      isexec: true
+    - path: models/model.pkl
+      hash: md5
+      md5: 6d6f0da1d218120ee82411e17a5b9578
+      size: 3188371
+      isexec: true
+    - path: params.yaml
+      hash: md5
+      md5: 3001485891e7e822dff4f5872d88f04c
+      size: 1281
+      isexec: true
+    - path: src/evaluation/evaluate.py
+      hash: md5
+      md5: aa44d055f6e461ecce457bc2d56fe4b0
+      size: 13070
+      isexec: true
+    params:
+      params.yaml:
+        evaluation.classification_threshold: 0.5
+        evaluation.cv_folds: 5
+        evaluation.scoring_metrics:
+        - accuracy
+        - f1_macro
+        - precision_macro
+        - recall_macro
+    outs:
+    - path: metrics/classification_report.txt
+      hash: md5
+      md5: ee648f8dad3e1bfe67248e44c75448cf
+      size: 2537
+      isexec: true
+    - path: metrics/confusion_matrix.png
+      hash: md5
+      md5: 9397d48ac92d150129abce7ef3a24543
+      size: 433348
+      isexec: true
+    - path: metrics/evaluation_results.json
+      hash: md5
+      md5: b8f53dc89ac8ffcb11db8db46d39f406
+      size: 8907
+      isexec: true
+    - path: metrics/feature_importance.png
+      hash: md5
+      md5: b010be16b6246db619f11becdabb8a7d
+      size: 138940
+      isexec: true
+  model_validation:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/evaluation/validate.py
+    deps:
+    - path: data/processed/X_val.pkl
+      hash: md5
+      md5: 045d23a7a044fa7149b24a29e972d91a
+      size: 2442754
+      isexec: true
+    - path: data/processed/label_encoder.pkl
+      hash: md5
+      md5: 62965910f78c787e472fa24ead2ceea7
+      size: 370
+      isexec: true
+    - path: data/processed/vectorizer.pkl
+      hash: md5
+      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      size: 396299
+      isexec: true
+    - path: data/processed/y_val.pkl
+      hash: md5
+      md5: de806dd053ed2029e74e156198b12c12
+      size: 34576
+      isexec: true
+    - path: models/model.pkl
+      hash: md5
+      md5: 6d6f0da1d218120ee82411e17a5b9578
+      size: 3188371
+      isexec: true
+    - path: params.yaml
+      hash: md5
+      md5: 3001485891e7e822dff4f5872d88f04c
+      size: 1281
+      isexec: true
+    - path: src/evaluation/validate.py
+      hash: md5
+      md5: 2b2aa5776cab984ab0432ec64afeb787
+      size: 4456
+      isexec: true
+    params:
+      params.yaml:
+        evaluation.scoring_metrics:
+        - accuracy
+        - f1_macro
+        - precision_macro
+        - recall_macro
+    outs:
+    - path: metrics/validation_report.txt
+      hash: md5
+      md5: fa653a173699ca6dc46d7e8cd2b52bd4
+      size: 266
+      isexec: true
+    - path: metrics/validation_results.json
+      hash: md5
+      md5: e157d8d368649b3a82f2d645b15f3d86
+      size: 3211
+      isexec: true
+  export_model:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/models/export.py
+    deps:
+    - path: data/processed/label_encoder.pkl
+      hash: md5
+      md5: 62965910f78c787e472fa24ead2ceea7
+      size: 370
+      isexec: true
+    - path: data/processed/vectorizer.pkl
+      hash: md5
+      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      size: 396299
+      isexec: true
+    - path: metrics/evaluation_results.json
+      hash: md5
+      md5: b8f53dc89ac8ffcb11db8db46d39f406
+      size: 8907
+      isexec: true
+    - path: models/model.pkl
+      hash: md5
+      md5: 6d6f0da1d218120ee82411e17a5b9578
+      size: 3188371
+      isexec: true
+    - path: params.yaml
+      hash: md5
+      md5: 3001485891e7e822dff4f5872d88f04c
+      size: 1281
+      isexec: true
+    - path: src/models/export.py
+      hash: md5
+      md5: f573d4c457960b9eba29b76b3f146ba2
+      size: 8160
+      isexec: true
+    params:
+      params.yaml:
+        deployment.model_name: sdg_classifier
+        deployment.model_version: v1.0.0
+    outs:
+    - path: models/final_model.pkl
+      hash: md5
+      md5: d7492acf677a3adf784bd0f1bf674893
+      size: 3197449
+      isexec: true
+    - path: models/inference_pipeline.pkl
+      hash: md5
+      md5: cbeb013ac7c296c9925302bf81a2327c
+      size: 3584884
+      isexec: true
+    - path: models/model_metadata.json
+      hash: md5
+      md5: d6528b9e6e2400933d81b43660ab1092
+      size: 1625
+      isexec: true

@@ -1,0 +1,55 @@
+# SDG Classification Model Parameters
+
+# Data Processing Parameters
+data:
+  raw_data_path: "data/raw/osdg-community-data-v2024-04-01.csv"
+  processed_data_path: "data/processed"
+  test_size: 0.2
+  val_size: 0.1
+  random_state: 42
+
+# Text Preprocessing Parameters
+preprocessing:
+  max_features: 10000
+  min_df: 5
+  max_df: 0.95
+  ngram_range: [1, 2]
+  remove_stopwords: true
+  lowercase: true
+
+# Model Training Parameters
+model:
+  algorithm: "random_forest"  # Options: random_forest, svm, logistic_regression, neural_network
+  n_estimators: 100  # For Random Forest
+  max_depth: 10
+  min_samples_split: 5
+  min_samples_leaf: 2
+  class_weight: "balanced"
+
+# Neural Network Parameters (if selected)
+neural_network:
+  hidden_layers: [128, 64, 32]
+  dropout_rate: 0.3
+  learning_rate: 0.001
+  batch_size: 32
+  epochs: 50
+
+# Evaluation Parameters
+evaluation:
+  cv_folds: 5
+  scoring_metrics: ["accuracy", "f1_macro", "precision_macro", "recall_macro"]
+  classification_threshold: 0.5
+
+# Model Deployment Parameters
+deployment:
+  model_name: "sdg_classifier"
+  model_version: "v1.0.0"
+  serve_port: 8000
+  max_prediction_batch_size: 100
+
+# Logging and Monitoring
+logging:
+  log_level: "INFO"
+  log_file: "logs/training.log"
+  mlflow_tracking: true
+  experiment_name: "sdg_classification"

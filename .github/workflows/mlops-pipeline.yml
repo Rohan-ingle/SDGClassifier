@@ -1,0 +1,367 @@
+name: MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: 3.9
+  DVC_CACHE_TYPE: symlink
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8 black isort
+    
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 src --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
+    
+    - name: Check code formatting with black
+      run: |
+        black --check src --line-length=100
+    
+    - name: Check import sorting with isort
+      run: |
+        isort --check-only src
+    
+    - name: Run tests
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  data-validation:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Setup DVC
+      uses: iterative/setup-dvc@v1
+    
+    - name: Validate data schema
+      run: |
+        python -c "
+        import pandas as pd
+        import sys
+        
+        # Load and validate data
+        try:
+            df = pd.read_csv('data/raw/osdg-community-data-v2024-04-01.csv', sep='\t', nrows=100)
+            required_cols = ['doi', 'text_id', 'text', 'sdg', 'labels_negative', 'labels_positive', 'agreement']
+            
+            missing_cols = [col for col in required_cols if col not in df.columns]
+            if missing_cols:
+                print(f'Missing columns: {missing_cols}')
+                sys.exit(1)
+            
+            print('Data validation passed!')
+        except Exception as e:
+            print(f'Data validation failed: {e}')
+            sys.exit(1)
+        "
+
+  train-model:
+    runs-on: ubuntu-latest
+    needs: [test, data-validation]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Setup DVC
+      uses: iterative/setup-dvc@v1
+    
+    - name: Configure DVC cache
+      run: |
+        dvc config cache.type ${{ env.DVC_CACHE_TYPE }}
+    
+    - name: Run DVC pipeline
+      run: |
+        # Run only preprocessing and training (skip evaluation for CI speed)
+        dvc repro data_preprocessing
+        dvc repro train_model
+    
+    - name: Generate model report
+      run: |
+        # Create a simple model performance report
+        python -c "
+        import json
+        import os
+        
+        if os.path.exists('models/training_metrics.json'):
+            with open('models/training_metrics.json', 'r') as f:
+                metrics = json.load(f)
+            
+            print('=== Training Report ===')
+            print(f'Algorithm: {metrics.get(\"model_params\", {}).get(\"class\", \"Unknown\")}')
+            print(f'Training Accuracy: {metrics.get(\"train_accuracy\", 0):.4f}')
+            print(f'Validation Accuracy: {metrics.get(\"validation_accuracy\", 0):.4f}')
+            print(f'CV Mean Accuracy: {metrics.get(\"cv_mean_accuracy\", 0):.4f}')
+            print(f'Training Time: {metrics.get(\"training_time_seconds\", 0):.2f}s')
+        else:
+            print('No training metrics found')
+        "
+    
+    - name: Upload model artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: trained-model
+        path: |
+          models/model.pkl
+          models/training_metrics.json
+          data/processed/vectorizer.pkl
+          data/processed/label_encoder.pkl
+        retention-days: 30
+
+  model-evaluation:
+    runs-on: ubuntu-latest
+    needs: train-model
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Setup DVC
+      uses: iterative/setup-dvc@v1
+    
+    - name: Download model artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: trained-model
+    
+    - name: Run model evaluation
+      run: |
+        dvc repro evaluate_model
+        dvc repro model_validation
+    
+    - name: Generate evaluation report
+      run: |
+        python -c "
+        import json
+        import os
+        
+        if os.path.exists('metrics/evaluation_results.json'):
+            with open('metrics/evaluation_results.json', 'r') as f:
+                results = json.load(f)
+            
+            print('=== Evaluation Report ===')
+            print(f'Test Accuracy: {results.get(\"test_accuracy\", 0):.4f}')
+            print(f'F1 Score (Macro): {results.get(\"f1_macro\", 0):.4f}')
+            print(f'F1 Score (Weighted): {results.get(\"f1_weighted\", 0):.4f}')
+            print(f'Precision (Macro): {results.get(\"precision_macro\", 0):.4f}')
+            print(f'Recall (Macro): {results.get(\"recall_macro\", 0):.4f}')
+            print(f'Test Samples: {results.get(\"num_test_samples\", 0)}')
+        else:
+            print('No evaluation results found')
+        "
+    
+    - name: Upload evaluation artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: evaluation-results
+        path: |
+          metrics/
+        retention-days: 30
+
+  model-deployment:
+    runs-on: ubuntu-latest
+    needs: model-evaluation
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Setup DVC
+      uses: iterative/setup-dvc@v1
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: trained-model
+    
+    - name: Download evaluation results
+      uses: actions/download-artifact@v3
+      with:
+        name: evaluation-results
+    
+    - name: Export final model
+      run: |
+        dvc repro export_model
+    
+    - name: Create deployment package
+      run: |
+        mkdir -p deployment/
+        cp models/final_model.pkl deployment/
+        cp models/inference_pipeline.pkl deployment/
+        cp models/model_metadata.json deployment/
+        cp requirements.txt deployment/
+        
+        # Create deployment script
+        cat > deployment/serve.py << 'EOF'
+        import pickle
+        import json
+        from flask import Flask, request, jsonify
+        
+        app = Flask(__name__)
+        
+        # Load inference pipeline
+        with open('inference_pipeline.pkl', 'rb') as f:
+            pipeline = pickle.load(f)
+        
+        @app.route('/predict', methods=['POST'])
+        def predict():
+            try:
+                data = request.json
+                text = data.get('text', '')
+                
+                if not text:
+                    return jsonify({'error': 'No text provided'}), 400
+                
+                result = pipeline.predict(text)
+                return jsonify(result)
+            
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/health', methods=['GET'])
+        def health():
+            return jsonify({'status': 'healthy'})
+        
+        if __name__ == '__main__':
+            app.run(host='0.0.0.0', port=8000)
+        EOF
+    
+    - name: Upload deployment package
+      uses: actions/upload-artifact@v3
+      with:
+        name: deployment-package
+        path: deployment/
+        retention-days: 90
+    
+    - name: Print deployment summary
+      run: |
+        echo "=== Deployment Summary ==="
+        echo "Model successfully trained and packaged for deployment"
+        echo "Deployment artifacts uploaded with 90-day retention"
+        echo "Files included:"
+        ls -la deployment/
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit
+    
+    - name: Run safety check for dependencies
+      run: |
+        pip install -r requirements.txt
+        safety check
+    
+    - name: Run bandit security linter
+      run: |
+        bandit -r src -f json -o bandit-report.json || true
+        cat bandit-report.json
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: bandit-report.json
+        retention-days: 30

@@ -1,0 +1,121 @@
+stages:
+  data_preprocessing:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/data/preprocess.py
+    deps:
+      - src/data/preprocess.py
+      - data/raw/osdg-community-data-v2024-04-01.csv
+      - params.yaml
+    params:
+      - data.test_size
+      - data.val_size
+      - data.random_state
+      - preprocessing.max_features
+      - preprocessing.min_df
+      - preprocessing.max_df
+      - preprocessing.ngram_range
+      - preprocessing.remove_stopwords
+      - preprocessing.lowercase
+    outs:
+      - data/processed/X_train.pkl
+      - data/processed/X_test.pkl
+      - data/processed/X_val.pkl
+      - data/processed/y_train.pkl
+      - data/processed/y_test.pkl
+      - data/processed/y_val.pkl
+      - data/processed/vectorizer.pkl
+      - data/processed/label_encoder.pkl
+      - data/processed/data_stats.json
+
+  train_model:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/models/train.py
+    deps:
+      - src/models/train.py
+      - data/processed/X_train.pkl
+      - data/processed/y_train.pkl
+      - data/processed/X_val.pkl
+      - data/processed/y_val.pkl
+      - data/processed/vectorizer.pkl
+      - data/processed/label_encoder.pkl
+      - params.yaml
+    params:
+      - model.algorithm
+      - model.n_estimators
+      - model.max_depth
+      - model.min_samples_split
+      - model.min_samples_leaf
+      - model.class_weight
+      - neural_network.hidden_layers
+      - neural_network.dropout_rate
+      - neural_network.learning_rate
+      - neural_network.batch_size
+      - neural_network.epochs
+    outs:
+      - models/model.pkl
+      - models/training_metrics.json
+
+  evaluate_model:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/evaluation/evaluate.py
+    deps:
+      - src/evaluation/evaluate.py
+      - models/model.pkl
+      - data/processed/X_test.pkl
+      - data/processed/y_test.pkl
+      - data/processed/vectorizer.pkl
+      - data/processed/label_encoder.pkl
+      - params.yaml
+    params:
+      - evaluation.cv_folds
+      - evaluation.scoring_metrics
+      - evaluation.classification_threshold
+    outs:
+      - metrics/evaluation_results.json
+      - metrics/confusion_matrix.png
+      - metrics/classification_report.txt
+      - metrics/feature_importance.png
+
+  model_validation:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/evaluation/validate.py
+    deps:
+      - src/evaluation/validate.py
+      - models/model.pkl
+      - data/processed/X_val.pkl
+      - data/processed/y_val.pkl
+      - data/processed/vectorizer.pkl
+      - data/processed/label_encoder.pkl
+      - params.yaml
+    params:
+      - evaluation.scoring_metrics
+    outs:
+      - metrics/validation_results.json
+      - metrics/validation_report.txt
+
+  export_model:
+    cmd: /home/ubuntu/mlops/mlops/bin/python src/models/export.py
+    deps:
+      - src/models/export.py
+      - models/model.pkl
+      - data/processed/vectorizer.pkl
+      - data/processed/label_encoder.pkl
+      - metrics/evaluation_results.json
+      - params.yaml
+    params:
+      - deployment.model_name
+      - deployment.model_version
+    outs:
+      - models/final_model.pkl
+      - models/model_metadata.json
+      - models/inference_pipeline.pkl
+
+plots:
+  - metrics/confusion_matrix.png
+  - metrics/feature_importance.png
+  - metrics/training_metrics.json:
+      x: epoch
+      y: 
+        - accuracy
+        - loss
+
+metrics:
+  - metrics/evaluation_results.json
+  - metrics/validation_results.json
+  - models/training_metrics.json
