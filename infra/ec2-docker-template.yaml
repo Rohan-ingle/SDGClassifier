@@ -1,0 +1,136 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Launch EC2 host for SDG Classifier with Docker runtime and app container.
+
+Parameters:
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: SSH key pair for EC2 access.
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+    Description: EC2 instance type for application host.
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where the instance will be deployed.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet for the EC2 instance (must belong to the provided VPC).
+  S3BucketName:
+    Type: String
+    Default: mlopsl-sdgclassifier
+    Description: S3 bucket name storing DVC artifacts.
+  RepositoryUrl:
+    Type: String
+    Description: Git repository URL to clone (HTTPS).
+  RepositoryBranch:
+    Type: String
+    Default: main
+    Description: Git branch to checkout.
+  DockerImageTag:
+    Type: String
+    Default: sdg-classifier:latest
+    Description: Tag to apply to the locally built Docker image.
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      Ami: ami-0c101f26f147fa7fd
+    us-east-2:
+      Ami: ami-02396cdd13e9a1257
+    us-west-1:
+      Ami: ami-0d53d72369335a9d6
+    us-west-2:
+      Ami: ami-0aff18ec83b712f05
+    eu-west-1:
+      Ami: ami-03a71cec707bfc5c3
+    eu-central-1:
+      Ami: ami-023d08d2739ac02ae
+
+Resources:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP and SSH for SDG Classifier host.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8501
+          ToPort: 8501
+          CidrIp: 0.0.0.0/0
+
+  ApplicationInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", Ami]
+      IamInstanceProfile: !Ref InstanceProfile
+      Tags:
+        - Key: Name
+          Value: sdg-classifier-host
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          apt-get update
+          apt-get install -y docker.io git awscli
+          systemctl enable docker
+          systemctl start docker
+          usermod -aG docker ubuntu
+          mkdir -p /opt/sdg-classifier
+          cd /opt/sdg-classifier
+          git clone --branch ${RepositoryBranch} ${RepositoryUrl} repo
+          cd repo
+          aws configure set default.region ${AWS::Region}
+          aws s3 sync s3://${S3BucketName}/dvc .dvc/cache
+          docker build -t ${DockerImageTag} .
+          docker stop sdg-classifier || true
+          docker rm sdg-classifier || true
+          docker run -d --name sdg-classifier -p 80:8501 -v /opt/sdg-classifier/repo/models:/app/models ${DockerImageTag}
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceRole
+
+Outputs:
+  InstanceId:
+    Description: ID of the EC2 instance.
+    Value: !Ref ApplicationInstance
+  PublicIp:
+    Description: Public IP address of the EC2 instance.
+    Value: !GetAtt ApplicationInstance.PublicIp
+  SshCommand:
+    Description: SSH command to access the instance.
+    Value: !Sub "ssh -i <path-to-key> ubuntu@${ApplicationInstance.PublicDnsName}"
