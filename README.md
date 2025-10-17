@@ -7,7 +7,7 @@
 
 A comprehensive MLOps pipeline for classifying research papers according to Sustainable Development Goals (SDGs) using the OSDG (Open Source for Sustainable Development Goals) dataset.
 
-## 🎯 Project Overview
+## Project Overview
 
 This project implements a machine learning model to classify research papers into one of the 16 SDG categories. The pipeline includes:
 
@@ -18,7 +18,7 @@ This project implements a machine learning model to classify research papers int
 - **CI/CD Pipeline**: Automated testing, training, and deployment using GitHub Actions
 - **Model Deployment**: Ready-to-deploy inference pipeline
 
-## 📊 Dataset
+## Dataset
 
 The project uses the [OSDG Community Dataset v2024-04-01](https://zenodo.org/records/11441197) which contains:
 - **43,025 research paper abstracts**
@@ -36,7 +36,7 @@ SDG 6 (Clean Water): 2,815 samples
 ... and more
 ```
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 SDGClassifier/
@@ -66,7 +66,7 @@ SDGClassifier/
 └── README.md                   # This file
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -140,7 +140,7 @@ python src/models/train.py
 python src/evaluation/evaluate.py
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 All pipeline parameters are defined in `params.yaml`:
 
@@ -165,7 +165,7 @@ All pipeline parameters are defined in `params.yaml`:
   - `cv_folds`: 5 (cross-validation folds)
   - `scoring_metrics`: ["accuracy", "f1_macro", "precision_macro", "recall_macro"]
 
-## 📈 Model Performance
+## Model Performance
 
 The pipeline generates comprehensive evaluation metrics:
 
@@ -183,7 +183,7 @@ The pipeline generates comprehensive evaluation metrics:
 - `metrics/feature_importance.png`: Feature importance plot
 - `metrics/classification_report.txt`: Detailed classification report
 
-## 🔄 MLOps Workflow
+## MLOps Workflow
 
 ### DVC Pipeline Stages:
 
@@ -223,7 +223,7 @@ The GitHub Actions workflow includes:
    - Model packaging
    - Deployment artifact creation
 
-## 🚀 Model Deployment
+## Model Deployment
 
 ### Inference Pipeline
 
@@ -262,7 +262,7 @@ curl -X POST http://localhost:8000/predict \
   -d '{"text": "Research on clean water and sanitation systems"}'
 ```
 
-## 🧪 Testing
+## Testing
 
 Run the test suite:
 
@@ -277,7 +277,7 @@ pytest tests/ --cov=src --cov-report=html
 pytest tests/test_preprocess.py -v
 ```
 
-## 📚 Notebooks
+## Notebooks
 
 Jupyter notebooks for exploration and analysis:
 
@@ -285,7 +285,7 @@ Jupyter notebooks for exploration and analysis:
 - `notebooks/02_model_comparison.ipynb`: Algorithm comparison
 - `notebooks/03_error_analysis.ipynb`: Error analysis and insights
 
-## 🛠️ Development
+## Development
 
 ### Code Style
 
@@ -317,7 +317,7 @@ flake8 src
 4. Run quality checks
 5. Submit a pull request
 
-## 📋 Requirements
+## Requirements
 
 See `requirements.txt` for full dependency list. Key packages:
 
@@ -329,24 +329,24 @@ See `requirements.txt` for full dependency list. Key packages:
 - **dvc**: Data version control
 - **pyyaml**: Configuration management
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our contributing guidelines and submit pull requests for any improvements.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [OSDG Community](https://zenodo.org/records/11441197) for the dataset
 - [DVC](https://dvc.org/) for MLOps capabilities
 - [scikit-learn](https://scikit-learn.org/) for ML algorithms
 
-## 📞 Contact
+## Contact
 
 For questions or support, please open an issue on GitHub or contact the maintainers.
 
 ---
 
-**Built with ❤️ for Sustainable Development Goals**
+**Built with care for Sustainable Development Goals**
