@@ -26,10 +26,11 @@ Parameters:
     Description: S3 bucket name storing DVC artifacts.
   RepositoryUrl:
     Type: String
+    Default: https://github.com/Rohan-ingle/SDGClassifier.git
     Description: Git repository URL to clone (HTTPS).
   RepositoryBranch:
     Type: String
-    Default: main
+    Default: master
     Description: Git branch to checkout.
   DockerImageTag:
     Type: String
