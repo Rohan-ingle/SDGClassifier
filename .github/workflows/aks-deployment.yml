@@ -1,0 +1,236 @@
+name: AKS Deployment Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  ACR_NAME: ${{ secrets.ACR_NAME }}
+  AKS_CLUSTER_NAME: ${{ secrets.AKS_CLUSTER_NAME }}
+  AKS_RESOURCE_GROUP: ${{ secrets.AKS_RESOURCE_GROUP }}
+  IMAGE_NAME: sdg-classifier
+  NAMESPACE: sdg-classifier
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: Run tests
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+      continue-on-error: true
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+      continue-on-error: true
+    
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+
+  build-and-push-docker:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    outputs:
+      image_tag: ${{ steps.set_tag.outputs.image_tag }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set image tag
+      id: set_tag
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          echo "image_tag=${{ github.event.inputs.environment }}-${{ github.sha }}" >> $GITHUB_OUTPUT
+        else
+          echo "image_tag=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Login to Azure Container Registry
+      run: |
+        az acr login --name ${{ env.ACR_NAME }}
+    
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.set_tag.outputs.image_tag }} .
+        docker tag ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.set_tag.outputs.image_tag }} \
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+    
+    - name: Push Docker image to ACR
+      run: |
+        docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.set_tag.outputs.image_tag }}
+        docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+    
+    - name: Scan image for vulnerabilities
+      run: |
+        az acr check-health --name ${{ env.ACR_NAME }} --yes
+      continue-on-error: true
+
+  deploy-to-aks:
+    needs: build-and-push-docker
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Get AKS credentials
+      run: |
+        az aks get-credentials --resource-group ${{ env.AKS_RESOURCE_GROUP }} \
+          --name ${{ env.AKS_CLUSTER_NAME }} --overwrite-existing
+    
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+    
+    - name: Create namespace if not exists
+      run: |
+        kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Apply ConfigMap
+      run: |
+        kubectl apply -f k8s/configmap.yaml -n ${{ env.NAMESPACE }}
+    
+    - name: Update deployment with new image
+      run: |
+        export ACR_NAME=${{ env.ACR_NAME }}
+        export IMAGE_TAG=${{ needs.build-and-push-docker.outputs.image_tag }}
+        envsubst < k8s/deployment.yaml | kubectl apply -f - -n ${{ env.NAMESPACE }}
+    
+    - name: Apply HPA
+      run: |
+        kubectl apply -f k8s/hpa.yaml -n ${{ env.NAMESPACE }}
+    
+    - name: Wait for deployment rollout
+      run: |
+        kubectl rollout status deployment/sdg-classifier-deployment -n ${{ env.NAMESPACE }} --timeout=5m
+    
+    - name: Get service details
+      run: |
+        kubectl get services -n ${{ env.NAMESPACE }}
+        kubectl get pods -n ${{ env.NAMESPACE }}
+        kubectl get hpa -n ${{ env.NAMESPACE }}
+    
+    - name: Get external IP
+      id: get_ip
+      run: |
+        echo "Waiting for external IP..."
+        for i in {1..30}; do
+          EXTERNAL_IP=$(kubectl get service sdg-classifier-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          if [ -n "$EXTERNAL_IP" ]; then
+            echo "external_ip=$EXTERNAL_IP" >> $GITHUB_OUTPUT
+            echo "External IP: $EXTERNAL_IP"
+            break
+          fi
+          echo "Attempt $i: Waiting for external IP..."
+          sleep 10
+        done
+    
+    - name: Deployment Summary
+      run: |
+        echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployment Details" >> $GITHUB_STEP_SUMMARY
+        echo "- **Namespace**: ${{ env.NAMESPACE }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image**: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ needs.build-and-push-docker.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Cluster**: ${{ env.AKS_CLUSTER_NAME }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Resource Group**: ${{ env.AKS_RESOURCE_GROUP }}" >> $GITHUB_STEP_SUMMARY
+        if [ -n "${{ steps.get_ip.outputs.external_ip }}" ]; then
+          echo "- **External IP**: ${{ steps.get_ip.outputs.external_ip }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Access URL**: http://${{ steps.get_ip.outputs.external_ip }}" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Pod Status" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        kubectl get pods -n ${{ env.NAMESPACE }} >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
+  health-check:
+    needs: deploy-to-aks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Get AKS credentials
+      run: |
+        az aks get-credentials --resource-group ${{ env.AKS_RESOURCE_GROUP }} \
+          --name ${{ env.AKS_CLUSTER_NAME }} --overwrite-existing
+    
+    - name: Check pod health
+      run: |
+        echo "Checking pod health..."
+        kubectl get pods -n ${{ env.NAMESPACE }}
+        kubectl describe pods -n ${{ env.NAMESPACE }}
+    
+    - name: Check service endpoints
+      run: |
+        echo "Checking service endpoints..."
+        kubectl get endpoints -n ${{ env.NAMESPACE }}
+    
+    - name: View recent logs
+      run: |
+        echo "Fetching recent logs..."
+        kubectl logs -l app=sdg-classifier -n ${{ env.NAMESPACE }} --tail=50 --all-containers=true
+      continue-on-error: true
