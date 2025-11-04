@@ -1,4 +1,5 @@
 [core]
-    remote = azuremodelstore
-['remote "azuremodelstore"']
+    remote = azurestorage
+
+['remote "azurestorage"']
     url = azure://models
