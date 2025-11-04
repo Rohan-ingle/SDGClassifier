@@ -2,24 +2,25 @@
 Data preprocessing pipeline for SDG Classification
 """
 
-import pandas as pd
-import numpy as np
-import pickle
 import json
+import logging
 import os
-import yaml
+import pickle
 import re
+
+import nltk
+import numpy as np
+import pandas as pd
+import yaml
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.class_weight import compute_class_weight
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from nltk.stem import PorterStemmer
-import logging
 
 # Import modular feature engineering
-from .feature_engineering import create_text_features, FeatureEngineer
+from .feature_engineering import FeatureEngineer, create_text_features
 
 # Setup logging
 logging.basicConfig(

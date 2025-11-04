@@ -6,16 +6,17 @@ This script iterates over algorithms, trains each model using the existing
 the test set and produces a visual comparison saved under `reports/model_comparison.png`.
 """
 
-import os
 import copy
 import json
-import pickle
-import yaml
 import logging
+import os
+import pickle
 from datetime import datetime
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
+import seaborn as sns
+import yaml
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 # Import trainer from the local package

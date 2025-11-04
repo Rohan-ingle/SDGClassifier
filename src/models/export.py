@@ -2,13 +2,14 @@
 Model export and packaging for deployment
 """
 
-import pickle
 import json
-import yaml
-import os
-import joblib
-from datetime import datetime
 import logging
+import os
+import pickle
+from datetime import datetime
+
+import joblib
+import yaml
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

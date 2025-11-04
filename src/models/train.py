@@ -2,22 +2,23 @@
 Model training pipeline for SDG Classification
 """
 
-import pandas as pd
-import numpy as np
-import pickle
 import json
-import os
-import yaml
-from datetime import datetime
 import logging
+import os
+import pickle
+import warnings
+from datetime import datetime
+
+import joblib
+import numpy as np
+import pandas as pd
+import yaml
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import cross_val_score
-import joblib
-import warnings
+from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
 
 warnings.filterwarnings("ignore")
 

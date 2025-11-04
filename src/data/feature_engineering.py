@@ -7,11 +7,12 @@ This module handles all feature engineering operations including:
 - Feature transformation and scaling
 """
 
-import numpy as np
-import pickle
 import logging
+import pickle
+from typing import Any, Dict, Tuple
+
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-from typing import Tuple, Dict, Any
 
 # Setup logging
 logger = logging.getLogger(__name__)

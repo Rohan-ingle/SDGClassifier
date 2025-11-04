@@ -5,14 +5,15 @@ Reads metrics/model_comparison.json or any metrics/*_metrics.json files and
 produces `reports/result_metrics.png` (high-resolution) suitable for the poster.
 """
 
-import os
-import json
 import glob
+import json
 import logging
+import os
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from typing import List, Dict, Any, Optional
 
 # Setup logging
 logging.basicConfig(
