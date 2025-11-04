@@ -26,9 +26,10 @@ print_warning() {
 
 # Configuration
 RESOURCE_GROUP="${RESOURCE_GROUP:-sdg-classifier-rg}"
-LOCATION="${LOCATION:-eastus}"
+LOCATION="${LOCATION:-centralindia}"
 ACR_NAME="${ACR_NAME:-sdgclassifieracr}"
 AKS_NAME="${AKS_NAME:-sdg-classifier-aks}"
+STORAGE_ACCOUNT="${STORAGE_ACCOUNT:-sdgclassifierstorage}"
 IMAGE_NAME="sdg-classifier"
 NAMESPACE="sdg-classifier"
 
@@ -90,6 +91,35 @@ create_acr() {
             --output table
         
         print_message "ACR created successfully!"
+    fi
+}
+
+# Create Azure Storage Account
+create_storage() {
+    print_message "Creating Azure Storage Account: $STORAGE_ACCOUNT..."
+    
+    if az storage account show --name "$STORAGE_ACCOUNT" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
+        print_warning "Storage account $STORAGE_ACCOUNT already exists. Skipping creation."
+    else
+        az storage account create \
+            --name "$STORAGE_ACCOUNT" \
+            --resource-group "$RESOURCE_GROUP" \
+            --location "$LOCATION" \
+            --sku Standard_LRS \
+            --kind StorageV2 \
+            --output table
+        
+        print_message "Storage account created successfully!"
+        
+        # Create blob container
+        print_message "Creating blob container 'models'..."
+        az storage container create \
+            --name models \
+            --account-name "$STORAGE_ACCOUNT" \
+            --auth-mode key \
+            --output table
+        
+        print_message "Blob container created successfully!"
     fi
 }
 
@@ -209,8 +239,10 @@ get_service_details() {
     echo "======================================"
     echo "Namespace: $NAMESPACE"
     echo "Resource Group: $RESOURCE_GROUP"
+    echo "Location: $LOCATION"
     echo "ACR: $ACR_NAME.azurecr.io"
     echo "AKS Cluster: $AKS_NAME"
+    echo "Storage Account: $STORAGE_ACCOUNT"
     echo ""
     
     print_message "Pods:"
@@ -279,6 +311,7 @@ full_setup() {
     azure_login
     create_resource_group
     create_acr
+    create_storage
     create_aks
     get_aks_credentials
     build_and_push_image
@@ -292,6 +325,7 @@ setup_azure_resources() {
     azure_login
     create_resource_group
     create_acr
+    create_storage
     create_aks
     get_aks_credentials
     print_message "Azure resources setup complete!"
