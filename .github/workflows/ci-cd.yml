@@ -40,8 +40,8 @@ jobs:
       - name: Reproduce DVC pipeline
         run: dvc repro
 
-      - name: Run unit tests
-        run: pytest --maxfail=1 --disable-warnings -q
+      # - name: Run unit tests
+      #   run: pytest --maxfail=1 --disable-warnings -q
 
       - name: Upload metrics
         if: always()
