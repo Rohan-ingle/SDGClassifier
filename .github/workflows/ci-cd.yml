@@ -40,6 +40,24 @@ jobs:
       - name: Reproduce DVC pipeline
         run: dvc repro
 
+      - name: Log in to Azure
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry (ACR)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Build and push Docker image
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG} .
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG}
+
       # - name: Run unit tests
       #   run: pytest --maxfail=1 --disable-warnings -q
 
@@ -83,16 +101,6 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Log in to Azure Container Registry (ACR)
-        run: az acr login --name ${{ secrets.ACR_NAME }}
-
-      - name: Build and push Docker image
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG} .
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG}
 
       - name: Set up Kubeconfig for AKS
         uses: azure/aks-set-context@v3
