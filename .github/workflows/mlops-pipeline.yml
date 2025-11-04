@@ -2,9 +2,9 @@ name: MLOps CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 env:
@@ -113,7 +113,7 @@ jobs:
   train-model:
     runs-on: ubuntu-latest
     needs: [test, data-validation]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
     steps:
     - uses: actions/checkout@v3
@@ -178,7 +178,7 @@ jobs:
   model-evaluation:
     runs-on: ubuntu-latest
     needs: train-model
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
     steps:
     - uses: actions/checkout@v3
@@ -240,7 +240,7 @@ jobs:
   model-deployment:
     runs-on: ubuntu-latest
     needs: model-evaluation
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
     steps:
     - uses: actions/checkout@v3
