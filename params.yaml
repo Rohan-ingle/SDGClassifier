@@ -53,3 +53,10 @@ logging:
   log_file: "logs/training.log"
   mlflow_tracking: true
   experiment_name: "sdg_classification"
+
+# Governance and Responsible AI Controls
+governance:
+  audit_log: "governance/audit_trail.jsonl"
+  model_card: "governance/model_card.md"
+  compliance_checklist: "governance/compliance_checklist.md"
+  bias_report: "governance/bias_mitigation.md"

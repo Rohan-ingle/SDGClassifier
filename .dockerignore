@@ -1,0 +1,73 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Jupyter Notebooks (optional - remove if needed in container)
+notebooks/
+*.ipynb
+
+# Test files
+tests/
+pytest.ini
+.pytest_cache/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# DVC (keep .dvc files, ignore cache)
+.dvc/cache/
+.dvc/tmp/
+
+# MLflow
+mlruns/
+
+# Data (assuming data is pulled via DVC)
+# Uncomment if you don't want raw data in the image
+# data/raw/
+
+# Environment files
+.env
+.env.local
+*.log
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Infrastructure
+infra/

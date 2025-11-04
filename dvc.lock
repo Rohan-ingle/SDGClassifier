@@ -1,7 +1,7 @@
 schema: '2.0'
 stages:
   data_preprocessing:
-    cmd: /home/ubuntu/mlops/mlops/bin/python src/data/preprocess.py
+    cmd: python src/data/preprocess.py
     deps:
     - path: data/raw/osdg-community-data-v2024-04-01.csv
       hash: md5
@@ -10,8 +10,8 @@ stages:
       isexec: true
     - path: params.yaml
       hash: md5
-      md5: 3001485891e7e822dff4f5872d88f04c
-      size: 1281
+      md5: 7d10fcba56f05d6a787c83c2f5a51b84
+      size: 1528
       isexec: true
     - path: src/data/preprocess.py
       hash: md5
@@ -59,7 +59,7 @@ stages:
       isexec: true
     - path: data/processed/vectorizer.pkl
       hash: md5
-      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      md5: d854a1a8b0bae6d63870b5754bafc04d
       size: 396299
       isexec: true
     - path: data/processed/y_test.pkl
@@ -78,7 +78,7 @@ stages:
       size: 34576
       isexec: true
   train_model:
-    cmd: /home/ubuntu/mlops/mlops/bin/python src/models/train.py
+    cmd: python src/models/train.py
     deps:
     - path: data/processed/X_train.pkl
       hash: md5
@@ -97,7 +97,7 @@ stages:
       isexec: true
     - path: data/processed/vectorizer.pkl
       hash: md5
-      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      md5: d854a1a8b0bae6d63870b5754bafc04d
       size: 396299
       isexec: true
     - path: data/processed/y_train.pkl
@@ -112,13 +112,13 @@ stages:
       isexec: true
     - path: params.yaml
       hash: md5
-      md5: 3001485891e7e822dff4f5872d88f04c
-      size: 1281
+      md5: 7d10fcba56f05d6a787c83c2f5a51b84
+      size: 1528
       isexec: true
     - path: src/models/train.py
       hash: md5
-      md5: 71cab3f0e7e70fc88f67901974924459
-      size: 10514
+      md5: 6ca7aae424466df72d6510d8a2200de8
+      size: 10669
       isexec: true
     params:
       params.yaml:
@@ -144,11 +144,11 @@ stages:
       isexec: true
     - path: models/training_metrics.json
       hash: md5
-      md5: b03818ac59c7c726a45df65c22b76c88
-      size: 138508
+      md5: 4f605808170e55659c3048633095200c
+      size: 138510
       isexec: true
   evaluate_model:
-    cmd: /home/ubuntu/mlops/mlops/bin/python src/evaluation/evaluate.py
+    cmd: python src/evaluation/evaluate.py
     deps:
     - path: data/processed/X_test.pkl
       hash: md5
@@ -162,7 +162,7 @@ stages:
       isexec: true
     - path: data/processed/vectorizer.pkl
       hash: md5
-      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      md5: d854a1a8b0bae6d63870b5754bafc04d
       size: 396299
       isexec: true
     - path: data/processed/y_test.pkl
@@ -177,8 +177,8 @@ stages:
       isexec: true
     - path: params.yaml
       hash: md5
-      md5: 3001485891e7e822dff4f5872d88f04c
-      size: 1281
+      md5: 7d10fcba56f05d6a787c83c2f5a51b84
+      size: 1528
       isexec: true
     - path: src/evaluation/evaluate.py
       hash: md5
@@ -207,7 +207,7 @@ stages:
       isexec: true
     - path: metrics/evaluation_results.json
       hash: md5
-      md5: b8f53dc89ac8ffcb11db8db46d39f406
+      md5: d44e0ee3d4169a825c6de3f9b7ba9b7f
       size: 8907
       isexec: true
     - path: metrics/feature_importance.png
@@ -216,7 +216,7 @@ stages:
       size: 138940
       isexec: true
   model_validation:
-    cmd: /home/ubuntu/mlops/mlops/bin/python src/evaluation/validate.py
+    cmd: python src/evaluation/validate.py
     deps:
     - path: data/processed/X_val.pkl
       hash: md5
@@ -230,7 +230,7 @@ stages:
       isexec: true
     - path: data/processed/vectorizer.pkl
       hash: md5
-      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      md5: d854a1a8b0bae6d63870b5754bafc04d
       size: 396299
       isexec: true
     - path: data/processed/y_val.pkl
@@ -245,8 +245,8 @@ stages:
       isexec: true
     - path: params.yaml
       hash: md5
-      md5: 3001485891e7e822dff4f5872d88f04c
-      size: 1281
+      md5: 7d10fcba56f05d6a787c83c2f5a51b84
+      size: 1528
       isexec: true
     - path: src/evaluation/validate.py
       hash: md5
@@ -268,11 +268,11 @@ stages:
       isexec: true
     - path: metrics/validation_results.json
       hash: md5
-      md5: e157d8d368649b3a82f2d645b15f3d86
+      md5: 0f2ef0cfce8a203654cc873633987ba4
       size: 3211
       isexec: true
   export_model:
-    cmd: /home/ubuntu/mlops/mlops/bin/python src/models/export.py
+    cmd: python src/models/export.py
     deps:
     - path: data/processed/label_encoder.pkl
       hash: md5
@@ -281,12 +281,12 @@ stages:
       isexec: true
     - path: data/processed/vectorizer.pkl
       hash: md5
-      md5: 4987cce7e4ac0d50b402cc88df5b617d
+      md5: d854a1a8b0bae6d63870b5754bafc04d
       size: 396299
       isexec: true
     - path: metrics/evaluation_results.json
       hash: md5
-      md5: b8f53dc89ac8ffcb11db8db46d39f406
+      md5: d44e0ee3d4169a825c6de3f9b7ba9b7f
       size: 8907
       isexec: true
     - path: models/model.pkl
@@ -296,8 +296,8 @@ stages:
       isexec: true
     - path: params.yaml
       hash: md5
-      md5: 3001485891e7e822dff4f5872d88f04c
-      size: 1281
+      md5: 7d10fcba56f05d6a787c83c2f5a51b84
+      size: 1528
       isexec: true
     - path: src/models/export.py
       hash: md5
@@ -316,11 +316,11 @@ stages:
       isexec: true
     - path: models/inference_pipeline.pkl
       hash: md5
-      md5: cbeb013ac7c296c9925302bf81a2327c
+      md5: c752b783fcfeb638602fd15ae17086f2
       size: 3584884
       isexec: true
     - path: models/model_metadata.json
       hash: md5
-      md5: d6528b9e6e2400933d81b43660ab1092
+      md5: 5aa950c5f7df6297b2468c972c425bb2
       size: 1625
       isexec: true

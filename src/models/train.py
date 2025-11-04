@@ -27,10 +27,12 @@ logger = logging.getLogger(__name__)
 class SDGModelTrainer:
     """SDG Classification Model Trainer"""
     
-    def __init__(self, params):
+    def __init__(self, params, model_dir: str = 'models'):
         self.params = params
         self.model = None
         self.training_history = {}
+        # directory where model and metrics will be saved for this trainer
+        self.model_dir = model_dir
         
     def load_processed_data(self):
         """Load preprocessed data"""
@@ -209,20 +211,19 @@ class SDGModelTrainer:
     def save_model_and_metrics(self):
         """Save trained model and training metrics"""
         logger.info("Saving model and metrics...")
-        
-        # Create models directory if it doesn't exist
-        os.makedirs('models', exist_ok=True)
-        
+        # Create model directory if it doesn't exist
+        os.makedirs(self.model_dir, exist_ok=True)
+
         # Save the trained model
-        model_path = 'models/model.pkl'
+        model_path = os.path.join(self.model_dir, 'model.pkl')
         with open(model_path, 'wb') as f:
             pickle.dump(self.model, f)
-        
+
         # Save training metrics
-        metrics_path = 'models/training_metrics.json'
+        metrics_path = os.path.join(self.model_dir, 'training_metrics.json')
         with open(metrics_path, 'w') as f:
             json.dump(self.training_history, f, indent=2)
-        
+
         logger.info(f"Model saved to {model_path}")
         logger.info(f"Training metrics saved to {metrics_path}")
         
