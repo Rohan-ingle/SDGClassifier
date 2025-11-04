@@ -131,6 +131,18 @@ get_aks_credentials() {
 build_and_push_image() {
     print_message "Building and pushing Docker image..."
     
+    # Ensure model artifacts are present before build
+    if command -v dvc &> /dev/null; then
+        if [[ -n "$AZURE_STORAGE_CONNECTION_STRING" || ( -n "$AZURE_STORAGE_ACCOUNT" && -n "$AZURE_STORAGE_KEY" ) ]]; then
+            print_message "Pulling latest model artifacts via DVC..."
+            dvc pull || print_warning "Failed to pull DVC artifacts; proceeding with existing files."
+        else
+            print_warning "Azure storage credentials not set; skipping DVC pull."
+        fi
+    else
+        print_warning "DVC not installed. Ensure artifacts are present before building the image."
+    fi
+
     # Login to ACR
     print_message "Logging in to ACR..."
     az acr login --name "$ACR_NAME"

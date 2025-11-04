@@ -230,6 +230,21 @@ The GitHub Actions workflow includes:
    - Model packaging
    - Deployment artifact creation
 
+## Model Artifact Storage (Azure Blob Storage)
+
+The project stores large data and model artifacts in Azure Blob Storage through a DVC remote named `azuremodelstore` (default `azure://sdgclassifier-artifacts/models`, configured in `.dvc/config`). Update the `url` value if your container and path differ.
+
+- Configure local development with:
+   ```bash
+   export AZURE_STORAGE_CONNECTION_STRING="<your-connection-string>"
+   # or
+   export AZURE_STORAGE_ACCOUNT="<your-account-name>"
+   export AZURE_STORAGE_KEY="<your-account-key>"
+   ```
+- Push updated artifacts: `dvc push`
+- Pull artifacts for reproducibility: `dvc pull`
+- GitHub Actions automatically pushes/pulls when the storage secrets are present.
+
 ## Model Deployment
 
 ### Cloud Deployment (Azure Kubernetes Service)
@@ -353,6 +368,9 @@ Configure these in your repository settings:
 | `ACR_NAME` | Azure Container Registry name |
 | `AKS_CLUSTER_NAME` | AKS cluster name |
 | `AKS_RESOURCE_GROUP` | Azure resource group |
+| `AZURE_STORAGE_CONNECTION_STRING` | Connection string for the Azure storage account that backs DVC |
+| `AZURE_STORAGE_ACCOUNT` (optional) | Storage account name (only needed if you prefer account/key auth) |
+| `AZURE_STORAGE_KEY` (optional) | Storage account key (only needed if you prefer account/key auth) |
 
 See [AZURE_SETUP.md](AZURE_SETUP.md) for detailed setup instructions.
 
