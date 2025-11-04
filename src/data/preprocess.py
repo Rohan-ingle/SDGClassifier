@@ -7,6 +7,8 @@ import logging
 import os
 import pickle
 import re
+import sys
+from pathlib import Path
 
 import nltk
 import numpy as np
@@ -20,7 +22,11 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.class_weight import compute_class_weight
 
 # Import modular feature engineering
-from .feature_engineering import FeatureEngineer, create_text_features
+try:
+    from .feature_engineering import FeatureEngineer, create_text_features
+except ImportError:  # Fallback when executed directly
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
+    from src.data.feature_engineering import FeatureEngineer, create_text_features
 
 # Setup logging
 logging.basicConfig(
