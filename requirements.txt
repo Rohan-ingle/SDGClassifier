@@ -54,8 +54,8 @@ xgboost>=1.6.0
 lightgbm>=3.3.0
 
 # Neural Networks (if using)
-tensorflow>=2.10.0
-torch>=1.12.0
+tensorflow-cpu>=2.10.0
+torch>=1.12.0+cpu
 
 # Text Processing
 spacy>=3.4.0
