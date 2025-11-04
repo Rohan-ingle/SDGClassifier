@@ -1,9 +1,13 @@
 # SDG Classification Model - MLOps Pipeline
 
-[![CI/CD Pipeline](https://github.com/username/SDGClassifier/workflows/MLOps%20CI/CD%20Pipeline/badge.svg)](https://github.com/username/SDGClassifier/actions)
-[![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/)
+[![CI/CD Pipeline](https://github.com/Rohan-ingle/SDGClassifier/workflows/MLOps%20CI/CD%20Pipeline/badge.svg)](https://github.com/Rohan-ingle/SDGClassifier/actions)
+[![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 [![DVC](https://img.shields.io/badge/DVC-2.0+-orange.svg)](https://dvc.org/)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-AKS-326CE5.svg)](https://azure.microsoft.com/en-us/services/kubernetes-service/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+> **🚀 Now with Azure Kubernetes Service (AKS) deployment!** See [AKS_SETUP_SUMMARY.md](AKS_SETUP_SUMMARY.md) for quick setup.
 
 A comprehensive MLOps pipeline for classifying research papers according to Sustainable Development Goals (SDGs) using the OSDG (Open Source for Sustainable Development Goals) dataset.
 
@@ -17,6 +21,9 @@ This project implements a machine learning model to classify research papers int
 - **MLOps Integration**: DVC for pipeline orchestration and experiment tracking
 - **CI/CD Pipeline**: Automated testing, training, and deployment using GitHub Actions
 - **Model Deployment**: Ready-to-deploy inference pipeline
+- **Cloud Deployment**: Azure Kubernetes Service (AKS) deployment with Docker
+- **Auto-scaling**: Horizontal Pod Autoscaler for dynamic scaling (2-10 pods)
+- **Containerization**: Docker support for consistent environment across all platforms
 
 ## Dataset
 
@@ -225,9 +232,57 @@ The GitHub Actions workflow includes:
 
 ## Model Deployment
 
-### Inference Pipeline
+### Cloud Deployment (Azure Kubernetes Service)
 
-The trained model can be deployed using the exported inference pipeline:
+This project includes full Azure Kubernetes Service (AKS) deployment setup with Docker containerization.
+
+#### Quick Deploy to AKS:
+```bash
+# Interactive deployment menu
+./deploy-aks.sh
+
+# Or automated deployment
+./deploy-aks.sh --full
+```
+
+#### Features:
+- ✅ **Docker Containerization**: Production-ready Dockerfile
+- ✅ **Kubernetes Manifests**: Complete k8s configuration in `k8s/` directory
+- ✅ **Auto-scaling**: HPA configuration (2-10 pods based on load)
+- ✅ **CI/CD Pipeline**: GitHub Actions workflow for automated deployment
+- ✅ **Load Balancer**: External access via Azure Load Balancer
+- ✅ **Health Checks**: Liveness and readiness probes
+- ✅ **Resource Management**: CPU/Memory limits and requests
+- ✅ **Monitoring Ready**: Integrated with Azure Monitor
+
+#### Deployment Documentation:
+- **[AZURE_SETUP.md](AZURE_SETUP.md)**: Complete Azure setup guide
+- **[DEPLOYMENT.md](DEPLOYMENT.md)**: Comprehensive deployment instructions
+- **[k8s/README.md](k8s/README.md)**: Kubernetes configuration details
+
+#### Manual Deployment Steps:
+```bash
+# 1. Build Docker image
+docker build -t sdgclassifier:latest .
+
+# 2. Push to Azure Container Registry
+az acr login --name <your-acr-name>
+docker tag sdgclassifier:latest <acr-name>.azurecr.io/sdg-classifier:latest
+docker push <acr-name>.azurecr.io/sdg-classifier:latest
+
+# 3. Deploy to AKS
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/hpa.yaml
+
+# 4. Get external IP
+kubectl get service sdg-classifier-service -n sdg-classifier
+```
+
+### Local Inference Pipeline
+
+The trained model can be deployed locally using the exported inference pipeline:
 
 ```python
 import pickle
@@ -245,22 +300,61 @@ print(f"Confidence: {result['confidence']:.4f}")
 print(f"Top predictions: {result['top_predictions']}")
 ```
 
-### API Deployment
+### Streamlit Web Application
 
-A Flask API is included in the deployment package:
-
-```bash
-cd deployment/
-python serve.py
-```
-
-Then make predictions via HTTP:
+Run the interactive web interface locally:
 
 ```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Research on clean water and sanitation systems"}'
+streamlit run app.py
 ```
+
+Then open your browser at `http://localhost:8501`
+
+### Docker Deployment
+
+Run the application in a Docker container:
+
+```bash
+# Build the image
+docker build -t sdg-classifier:latest .
+
+# Run the container
+docker run -p 8501:8501 sdg-classifier:latest
+
+# Access at http://localhost:8501
+```
+
+## GitHub Actions CI/CD
+
+### Workflows
+
+The project includes two GitHub Actions workflows:
+
+1. **Basic CI** (`.github/workflows/basic-ci.yml`)
+   - Runs on every push/PR
+   - Code quality checks
+   - Basic syntax validation
+   - Project structure verification
+
+2. **AKS Deployment** (`.github/workflows/aks-deployment.yml`)
+   - Full CI/CD pipeline
+   - Automated testing with coverage
+   - Docker image building and pushing to ACR
+   - Automated deployment to AKS
+   - Health checks and monitoring
+
+### Required GitHub Secrets
+
+Configure these in your repository settings:
+
+| Secret Name | Description |
+|------------|-------------|
+| `AZURE_CREDENTIALS` | Azure service principal JSON |
+| `ACR_NAME` | Azure Container Registry name |
+| `AKS_CLUSTER_NAME` | AKS cluster name |
+| `AKS_RESOURCE_GROUP` | Azure resource group |
+
+See [AZURE_SETUP.md](AZURE_SETUP.md) for detailed setup instructions.
 
 ## Testing
 
@@ -329,9 +423,36 @@ See `requirements.txt` for full dependency list. Key packages:
 - **dvc**: Data version control
 - **pyyaml**: Configuration management
 
+## 📚 Complete Documentation
+
+This project includes comprehensive documentation for all aspects of development and deployment:
+
+### Quick Start & Deployment
+- **[QUICKSTART.md](QUICKSTART.md)** - ⚡ Fast-start guide with multiple deployment options
+- **[AKS_SETUP_SUMMARY.md](AKS_SETUP_SUMMARY.md)** - 🎉 Complete overview of AKS setup
+
+### Cloud Deployment
+- **[AZURE_SETUP.md](AZURE_SETUP.md)** - ☁️ Detailed Azure resource setup guide
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - 📖 Comprehensive deployment instructions
+- **[GITHUB_SECRETS_SETUP.md](GITHUB_SECRETS_SETUP.md)** - 🔐 GitHub Actions secrets configuration
+
+### Kubernetes
+- **[k8s/README.md](k8s/README.md)** - 🎯 Kubernetes manifests and usage guide
+
+### Scripts
+- **`deploy-aks.sh`** - 🛠️ Automated deployment script with interactive menu
+
 ## Contributing
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests for any improvements.
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes with tests
+4. Run quality checks (`black`, `flake8`, `pytest`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ## License
 
@@ -342,10 +463,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [OSDG Community](https://zenodo.org/records/11441197) for the dataset
 - [DVC](https://dvc.org/) for MLOps capabilities
 - [scikit-learn](https://scikit-learn.org/) for ML algorithms
+- [Devendhake18/MLOPS-Project](https://github.com/Devendhake18/MLOPS-Project) for AKS deployment inspiration
+- [Azure](https://azure.microsoft.com/) for cloud infrastructure
+- [Kubernetes](https://kubernetes.io/) for container orchestration
 
-## Contact
+## 📞 Support & Contact
 
-For questions or support, please open an issue on GitHub or contact the maintainers.
+- **Issues**: [Open an issue](https://github.com/Rohan-ingle/SDGClassifier/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Rohan-ingle/SDGClassifier/discussions)
+- **Documentation**: Check the comprehensive docs in this repository
+
+---
+
+**⭐ Star this repo if you find it useful!**
+
+Made with ❤️ for Sustainable Development Goals
 
 ---
 
