@@ -57,6 +57,15 @@ class TextPreprocessor:
             nltk.download("punkt")
             logger.info("NLTK punkt downloaded")
 
+        # Recent NLTK releases require an additional punkt tab resource
+        try:
+            nltk.data.find("tokenizers/punkt_tab")
+            logger.debug("NLTK punkt_tab resource already available")
+        except LookupError:
+            logger.info("Downloading NLTK punkt_tab resource...")
+            nltk.download("punkt_tab")
+            logger.info("NLTK punkt_tab downloaded")
+
         try:
             nltk.data.find("corpora/stopwords")
             logger.debug("NLTK stopwords already available")
