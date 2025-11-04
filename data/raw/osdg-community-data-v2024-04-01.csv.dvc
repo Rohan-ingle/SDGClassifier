@@ -1,0 +1,5 @@
+outs:
+- md5: 26627ce342bc1de474be21d9a9b80536
+  size: 30208569
+  hash: md5
+  path: osdg-community-data-v2024-04-01.csv

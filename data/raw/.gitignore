@@ -1,0 +1,3 @@
+# Keep raw data out of Git but retain folder structure
+*
+!.gitignore
