@@ -1,6 +1,5 @@
-['core']
-	remote = s3remote
-
+[core]
+    remote = s3remote
 ['remote "s3remote"']
-	url = s3://mlopsl-sdgclassifier/dvc
-	region = us-east-1
+    url = s3://sdgclassification/dvc
+    region = ap-south-1
