@@ -24,15 +24,14 @@ from sklearn.utils.class_weight import compute_class_weight
 # Import modular feature engineering
 try:
     from .feature_engineering import FeatureEngineer, create_text_features
+    from ..utils.logging_config import setup_logging
 except ImportError:  # Fallback when executed directly
     sys.path.append(str(Path(__file__).resolve().parents[2]))
     from src.data.feature_engineering import FeatureEngineer, create_text_features
+    from src.utils.logging_config import setup_logging
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+# Setup centralized logging
+logger = setup_logging(log_dir="logs", module_name="preprocess", log_level="INFO")
 
 
 class TextPreprocessor:

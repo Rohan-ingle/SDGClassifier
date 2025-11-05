@@ -25,9 +25,16 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import cross_val_score
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Setup centralized logging
+import sys
+from pathlib import Path
+try:
+    from ..utils.logging_config import setup_logging
+except ImportError:
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
+    from src.utils.logging_config import setup_logging
+
+logger = setup_logging(log_dir="logs", module_name="evaluate", log_level="INFO")
 
 # Set style for plots
 plt.style.use("default")

@@ -22,9 +22,16 @@ from sklearn.svm import SVC
 
 warnings.filterwarnings("ignore")
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Setup centralized logging
+import sys
+from pathlib import Path
+try:
+    from ..utils.logging_config import setup_logging
+except ImportError:
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
+    from src.utils.logging_config import setup_logging
+
+logger = setup_logging(log_dir="logs", module_name="train", log_level="INFO")
 
 
 class SDGModelTrainer:

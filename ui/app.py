@@ -7,7 +7,13 @@ import pandas as pd
 import pickle
 import random
 import os
+import sys
 from pathlib import Path
+
+# Setup logging
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+from src.utils.logging_config import setup_logging
+logger = setup_logging(log_dir="logs", module_name="ui_app", log_level="INFO")
 
 # SDG Mappings
 SDG_NAMES = {
@@ -43,8 +49,10 @@ class SDGClassifierApp:
     def load_model(self):
         """Load the trained inference pipeline"""
         try:
+            logger.info("Loading inference pipeline model...")
             model_path = Path("models/inference_pipeline.pkl")
             if not model_path.exists():
+                logger.error(f"Model file not found at {model_path}")
                 st.error("Model file not found. Please run the training pipeline first.")
                 return
 
@@ -55,9 +63,13 @@ class SDGClassifierApp:
             self.vectorizer = components['vectorizer']
             self.label_encoder = components['label_encoder']
 
+            logger.info("Model loaded successfully")
+            logger.info(f"Model type: {type(self.model).__name__}")
+            logger.info(f"Number of classes: {len(self.label_encoder.classes_)}")
             st.success("Model loaded successfully!")
 
         except Exception as e:
+            logger.error(f"Error loading model: {str(e)}", exc_info=True)
             st.error(f"Error loading model: {str(e)}")
 
     def load_sample_texts(self):
@@ -113,20 +125,26 @@ class SDGClassifierApp:
     def predict_sdg(self, text):
         """Predict SDG for given text"""
         if not self.model or not self.vectorizer or not self.label_encoder:
+            logger.warning("Model components not loaded")
             return None
 
         try:
+            logger.info(f"Making prediction for text of length {len(text)}")
+            
             # Vectorize text
             X_vec = self.vectorizer.transform([text])
+            logger.debug(f"Text vectorized, shape: {X_vec.shape}")
 
             # Predict
             prediction = self.model.predict(X_vec)[0]
             predicted_sdg = int(self.label_encoder.inverse_transform([prediction])[0])
+            logger.info(f"Predicted SDG: {predicted_sdg}")
 
             # Get probabilities
             probabilities = None
             if hasattr(self.model, 'predict_proba'):
                 probabilities = self.model.predict_proba(X_vec)[0]
+                logger.debug(f"Prediction confidence: {probabilities.max():.4f}")
 
             result = {
                 'predicted_sdg': predicted_sdg,
@@ -145,10 +163,12 @@ class SDGClassifierApp:
                     }
                     for idx in top_indices
                 ]
+                logger.debug(f"Top 3 predictions: {[p['sdg'] for p in result['top_predictions']]}")
 
             return result
 
         except Exception as e:
+            logger.error(f"Error making prediction: {str(e)}", exc_info=True)
             st.error(f"Error making prediction: {str(e)}")
             return None
 
