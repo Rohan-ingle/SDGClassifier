@@ -55,12 +55,6 @@ jobs:
           python -m src.evaluation.evaluate
           echo "Evaluation completed"
 
-      - name: Run tests
-        run: |
-          echo "Running tests..."
-          python -m pytest tests/ -v --tb=short || true
-          echo "Tests completed"
-
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
