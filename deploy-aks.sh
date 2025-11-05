@@ -80,47 +80,39 @@ create_resource_group() {
 create_acr() {
     print_message "Creating Azure Container Registry: $ACR_NAME..."
     
-    if az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-        print_warning "ACR $ACR_NAME already exists. Skipping creation."
-    else
-        az acr create \
-            --resource-group "$RESOURCE_GROUP" \
-            --name "$ACR_NAME" \
-            --sku Standard \
-            --admin-enabled true \
-            --output table
-        
-        print_message "ACR created successfully!"
-    fi
+    az acr create \
+        --resource-group "$RESOURCE_GROUP" \
+        --name "$ACR_NAME" \
+        --sku Standard \
+        --admin-enabled true \
+        --output table
+    
+    print_message "ACR created successfully!"
 }
 
 # Create Azure Storage Account
 create_storage() {
     print_message "Creating Azure Storage Account: $STORAGE_ACCOUNT..."
     
-    if az storage account show --name "$STORAGE_ACCOUNT" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-        print_warning "Storage account $STORAGE_ACCOUNT already exists. Skipping creation."
-    else
-        az storage account create \
-            --name "$STORAGE_ACCOUNT" \
-            --resource-group "$RESOURCE_GROUP" \
-            --location "$LOCATION" \
-            --sku Standard_LRS \
-            --kind StorageV2 \
-            --output table
-        
-        print_message "Storage account created successfully!"
-        
-        # Create blob container
-        print_message "Creating blob container 'models'..."
-        az storage container create \
-            --name models \
-            --account-name "$STORAGE_ACCOUNT" \
-            --auth-mode key \
-            --output table
-        
-        print_message "Blob container created successfully!"
-    fi
+    az storage account create \
+        --name "$STORAGE_ACCOUNT" \
+        --resource-group "$RESOURCE_GROUP" \
+        --location "$LOCATION" \
+        --sku Standard_LRS \
+        --kind StorageV2 \
+        --output table
+    
+    print_message "Storage account created successfully!"
+    
+    # Create blob container
+    print_message "Creating blob container 'models'..."
+    az storage container create \
+        --name models \
+        --account-name "$STORAGE_ACCOUNT" \
+        --auth-mode key \
+        --output table
+    
+    print_message "Blob container created successfully!"
 }
 
 # Create AKS cluster
@@ -128,21 +120,17 @@ create_aks() {
     print_message "Creating AKS cluster: $AKS_NAME..."
     print_warning "This may take 5-10 minutes..."
     
-    if az aks show --name "$AKS_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-        print_warning "AKS cluster $AKS_NAME already exists. Skipping creation."
-    else
-        az aks create \
-            --resource-group "$RESOURCE_GROUP" \
-            --name "$AKS_NAME" \
-            --node-count 2 \
-            --node-vm-size Standard_D2s_v3 \
-            --enable-managed-identity \
-            --attach-acr "$ACR_NAME" \
-            --generate-ssh-keys \
-            --output table
-        
-        print_message "AKS cluster created successfully!"
-    fi
+    az aks create \
+        --resource-group "$RESOURCE_GROUP" \
+        --name "$AKS_NAME" \
+        --node-count 1 \
+        --node-vm-size Standard_D2s_v3 \
+        --enable-managed-identity \
+        --attach-acr "$ACR_NAME" \
+        --generate-ssh-keys \
+        --output table
+    
+    print_message "AKS cluster created successfully!"
 }
 
 # Get AKS credentials
@@ -216,9 +204,9 @@ deploy_to_k8s() {
     
     # Deploy application
     print_message "Deploying application..."
-    export ACR_NAME
-    export IMAGE_TAG=${IMAGE_TAG:-latest}
-    envsubst < k8s/deployment.yaml | kubectl apply -f - -n "$NAMESPACE"
+    
+    # Replace placeholders in deployment.yaml
+    sed "s/\${ACR_NAME}/${ACR_NAME}/g; s/\${IMAGE_TAG}/${IMAGE_TAG:-latest}/g" k8s/deployment.yaml | kubectl apply -f - -n "$NAMESPACE"
     
     # Apply HPA
     print_message "Applying Horizontal Pod Autoscaler..."
