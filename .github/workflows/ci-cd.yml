@@ -55,9 +55,13 @@ jobs:
           cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
 
       - name: Deploy to AKS
-        uses: Azure/k8s-deploy@v4
-        with:
-          manifests: |
-            k8s/deployment.yaml
-          images: |
-            ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Replace placeholders in deployment.yaml
+          sed -i "s/\${ACR_NAME}/${{ secrets.ACR_NAME }}/g" k8s/deployment.yaml
+          sed -i "s/\${IMAGE_TAG}/${IMAGE_TAG}/g" k8s/deployment.yaml
+          
+          # Deploy to AKS
+          kubectl apply -f k8s/deployment.yaml
+          kubectl rollout status deployment/sdg-classifier-deployment --timeout=300s
